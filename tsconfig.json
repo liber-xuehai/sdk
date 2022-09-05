@@ -3,6 +3,9 @@
     "baseUrl": ".",
     "paths": {
       "xuehai": [
+        "src/index"
+      ],
+      "xuehai/*": [
         "src/*"
       ],
     },

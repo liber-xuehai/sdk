@@ -1,20 +1,26 @@
 {
-  "name": "open-xuehai-sdk",
+  "name": "xuehai",
   "version": "0.0.0",
   "main": "src/index.ts",
   "repository": "https://github.com/memset0/open-xuehai-sdk.git",
   "author": "memset0 <34177126+memset0@users.noreply.github.com>",
   "license": "MIT",
+  "scripts": {
+    "test": "ts-node -r tsconfig-paths/register test/main.ts"
+  },
   "dependencies": {
+    "lodash": "^4.17.21",
     "md5": "^2.3.0",
     "superagent": "^8.0.0",
     "yaml": "^2.1.1"
   },
   "devDependencies": {
+    "@types/lodash": "^4.14.184",
     "@types/md5": "^2.3.2",
     "@types/node": "^18.7.15",
     "@types/superagent": "^4.1.15",
     "ts-node": "^10.9.1",
+    "tsconfig-paths": "^4.1.0",
     "typescript": "^4.8.2"
   }
 }
