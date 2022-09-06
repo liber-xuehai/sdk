@@ -1,8 +1,9 @@
 import meta from 'xuehai/meta'
-import { LoginConfig } from 'xuehai/app'
+import { LoginConfig } from 'xuehai/index'
 import { UserMeta } from 'xuehai/interface'
+import md5 from 'md5'
 import { merge } from 'lodash'
-import superagent, { SuperAgentRequest, SuperAgentStatic } from 'superagent'
+import superagent, { Response, SuperAgentRequest, SuperAgentStatic } from 'superagent'
 
 export interface HttpConfig {
 	sign?: string
@@ -22,10 +23,12 @@ export type HttpOptions = HttpConfig & {
 
 export class Http {
 	agent: SuperAgentStatic
-	accessToken: string
-	refreshToken: string
+	token: {
+		access: string
+		refresh: string
+	}
 
-	handleRequest(req: SuperAgentRequest): SuperAgentRequest {
+	async handleRequest(req: SuperAgentRequest): Promise<Response> {
 		req = req.set({
 			'User-Agent': this.options.userAgent,
 			'Tenant': this.options.headers.Tenant,
@@ -34,37 +37,34 @@ export class Http {
 			UserId: this.user.userId,
 			SchoolId: this.user.schoolId,
 		})
-		if (this.refreshToken) { req = req.set('Authorization', `Bearer ${this.refreshToken}`) }
-		return req
+		req = req.query({
+			sign: this.options.sign || generateSign(),
+			t: Date.now(),
+		})
+		if (this.token.refresh) { req = req.set('Authorization', `Bearer ${this.token.refresh}`) }
+		return (await req)
 	}
-	
-	get(uri: string): SuperAgentRequest {
-		return this.handleRequest(this.agent.get(this.options.apiRoot + uri))
+
+	get(uri: string, params: object): Promise<Response> {
+		return this.handleRequest(this.agent.get(this.options.apiRoot + uri).query(params))
 	}
-	post(uri: string): SuperAgentRequest {
-		return this.handleRequest(this.agent.post(this.options.apiRoot + uri))
+	post(uri: string, body: object): Promise<Response> {
+		return this.handleRequest(this.agent.post(this.options.apiRoot + uri).send(body))
 	}
 
 	async login() {
-		const res = await this.post('/api/v2/platform/login')
-			.query({
-				sign: this.options.sign,
-				t: Date.now(),
-			})
-			.send({
-				...this.options.login,
-				password: this.options.login.passwordMd5,
-			})
-
+		const res = await this.post('/api/v2/platform/login', {
+			...this.options.login,
+			password: this.options.login.passwordMd5,
+		})
 		this.user.userId = res.body.userId
 		this.user.userName = res.body.userName
 		this.user.schoolId = res.body.schoolId
 		this.user.schoolName = res.body.schoolName
 		this.user.avatar = res.body.avatar
-
-		this.accessToken = res.body.accessToken
-		this.refreshToken = res.body.refreshToken
-
+		this.user.roles = res.body.roles
+		this.token.access = res.body.accessToken
+		this.token.refresh = res.body.refreshToken
 		return res
 	}
 
@@ -73,7 +73,7 @@ export class Http {
 			loginType: meta.loginType,
 			mdmVersionCode: meta.mdmVersionCode,
 			mdmVersionName: meta.mdmVersionName,
-			osDisplay: 'SM-P335C',
+			osDisplay: options.login.osDisplay || 'SM-P335C',
 		}, this.options.login)
 
 		this.options = merge({
@@ -87,9 +87,13 @@ export class Http {
 				.replace('{device}', options.login.deviceId),
 		}, this.options)
 
-		this.accessToken = ''
-		this.refreshToken = ''
+		this.token = { access: '', refresh: '' }
 
 		this.agent = superagent.agent()
 	}
+}
+
+
+function generateSign(): string {
+	return md5(String(Math.random()))
 }

@@ -4,8 +4,10 @@ import config from './config'
 async function main() {
 	const app = new App(config.app)
 
-	const loginInfo = await app.login()
-	console.log(loginInfo)
+	const loginRsp = await app.login()
+	console.log(loginRsp.body)
+	console.log('user', app.user)
+
 }
 
 main()

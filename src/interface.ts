@@ -4,4 +4,5 @@ export interface UserMeta {
 	userName?: string,
 	schoolName?: string,
 	avatar?: string,
+	roles?: string
 }
