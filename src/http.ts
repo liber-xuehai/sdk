@@ -1,6 +1,6 @@
 import meta from 'xuehai/meta'
 import { LoginConfig } from 'xuehai/index'
-import { UserMeta } from 'xuehai/interface'
+import { UserMeta, Quotation } from 'xuehai/interface'
 import { LifeCycle } from 'xuehai/lifecycle'
 import md5 from 'md5'
 import { merge } from 'lodash'
@@ -8,8 +8,8 @@ import superagent, { Response, SuperAgentRequest, SuperAgentStatic } from 'super
 
 export interface HttpConfig {
 	sign?: string
+	tenant?: string
 	headers?: {
-		Tenant?: string
 		AppCode?: string
 		'XHCore-Version'?: string
 	}
@@ -29,11 +29,11 @@ export class Http {
 		refresh: string
 	}
 
-	async handleRequest(req: SuperAgentRequest): Promise<Response> {
+	async handleRequest(req: SuperAgentRequest, extend?: any): Promise<Response> {
 		req = req.set({
 			'User-Agent': this.options.userAgent,
-			'Tenant': this.options.headers.Tenant,
-			'TenantCode': this.options.headers.Tenant,
+			'Tenant': this.options.tenant,
+			'TenantCode': this.options.tenant,
 			'AppCode': this.options.headers.AppCode,
 			UserId: this.user.userId,
 			SchoolId: this.user.schoolId,
@@ -42,15 +42,18 @@ export class Http {
 			sign: this.options.sign || generateSign(),
 			t: Date.now(),
 		})
+		if (extend) {
+			for (const key in extend) { req = req[key](extend[key]) }
+		}
 		if (this.token.refresh) { req = req.set('Authorization', `Bearer ${this.token.refresh}`) }
 		return (await req)
 	}
 
-	get(uri: string, params: object): Promise<Response> {
-		return this.handleRequest(this.agent.get(this.options.apiRoot + uri).query(params))
+	get(uri: string, params: object = {}, extend?: any): Promise<Response> {
+		return this.handleRequest(this.agent.get(this.options.apiRoot + uri).query(params), extend)
 	}
-	post(uri: string, body: object): Promise<Response> {
-		return this.handleRequest(this.agent.post(this.options.apiRoot + uri).send(body))
+	post(uri: string, body: object = {}, extend?: any): Promise<Response> {
+		return this.handleRequest(this.agent.post(this.options.apiRoot + uri).send(body), extend)
 	}
 
 	async login() {
@@ -69,6 +72,21 @@ export class Http {
 		this.token.refresh = res.body.refreshToken
 		await this.lifecycle.emit('login', () => ({ user: this.user, token: this.token }))
 		return res
+	}
+	async logout() {
+		await this.lifecycle.emit('before-logout')
+		const res = await this.get(`/api/v1/platform/users/${this.user.userId}/logout`)
+		await this.lifecycle.emit('logout')
+		return res
+	}
+
+	async quotation(): Promise<Quotation> {
+		const res = await this.get('/api/v1/pub/quotations/today')
+		return {
+			id: +res.body.id,
+			source: res.body.source,
+			content: res.body.content,
+		} as Quotation
 	}
 
 	constructor(
@@ -101,6 +119,10 @@ export class Http {
 }
 
 
-function generateSign(): string {
+export function generateSign(): string {
 	return md5(String(Math.random()))
+}
+
+export function generateTenant(): string {
+	return md5(String(Math.random())).slice(0, 16)
 }

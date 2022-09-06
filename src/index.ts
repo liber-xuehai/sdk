@@ -1,9 +1,15 @@
+import { Methods } from 'xuehai/utils'
 import { UserMeta } from 'xuehai/interface'
 import { LifeCycle } from 'xuehai/lifecycle'
-import { Http, HttpConfig } from 'xuehai/http'
+import { Http, HttpConfig, generateTenant } from 'xuehai/http'
 import md5 from 'md5'
 import assert from 'assert'
 import { assign } from 'lodash'
+
+const maintainArguments = [
+	'http.status',
+	'user',
+]
 
 export interface LoginConfig {
 	userName: string
@@ -22,20 +28,16 @@ export interface AppConfig {
 	user?: UserMeta
 }
 
-const maintainArguments = [
-	'http.status',
-	'user',
-]
+export type AppBasic = {}
+	& Pick<Http, Methods<Http>>
+	& Pick<LifeCycle, Methods<LifeCycle>>
+export interface App extends AppBasic {
+	http: Http
+	lifecycle: LifeCycle
+}
 
 export class App {
 	user: UserMeta
-
-	http: Http
-	login: Http['login']
-
-	lifecycle: LifeCycle
-	on: LifeCycle['on']
-	emit: LifeCycle['emit']
 
 	dumps(): string {
 		const data = {} as any
@@ -67,6 +69,9 @@ export class App {
 			options.login.passwordMd5 = md5(options.login.password)
 		}
 		options.login.passwordMd5 = options.login.passwordMd5.toUpperCase()
+
+		options.http = options.http || {}
+		options.http.tenant = options.http.tenant || generateTenant()
 
 		this.user = {
 			schoolId: -1,
