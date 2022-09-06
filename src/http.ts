@@ -67,7 +67,7 @@ export class Http {
 		this.user.roles = res.body.roles
 		this.token.access = res.body.accessToken
 		this.token.refresh = res.body.refreshToken
-		await this.lifecycle.emit('login', { user: this.user, token: this.token })
+		await this.lifecycle.emit('login', () => ({ user: this.user, token: this.token }))
 		return res
 	}
 
