@@ -1,4 +1,5 @@
 import { UserMeta } from 'xuehai/interface'
+import { LifeCycle } from 'xuehai/lifecycle'
 import { Http, HttpConfig } from 'xuehai/http'
 import md5 from 'md5'
 import assert from 'assert'
@@ -27,10 +28,14 @@ const maintainArguments = [
 ]
 
 export class App {
-	http: Http
 	user: UserMeta
 
-	async login() { return this.http.login() }
+	http: Http
+	login: Http['login']
+
+	lifecycle: LifeCycle
+	on: LifeCycle['on']
+	emit: LifeCycle['emit']
 
 	dumps(): string {
 		const data = {} as any
@@ -69,6 +74,11 @@ export class App {
 			...(options.user || {}),
 		}
 
-		this.http = new Http({ ...options.http, login: options.login }, this.user)
+		this.lifecycle = new LifeCycle()
+		this.on = this.lifecycle.on.bind(this.lifecycle)
+		this.emit = this.lifecycle.emit.bind(this.lifecycle)
+
+		this.http = new Http({ ...options.http, login: options.login }, this.user, this.lifecycle)
+		this.login = this.http.login.bind(this.http)
 	}
 }

@@ -1,6 +1,7 @@
 import meta from 'xuehai/meta'
 import { LoginConfig } from 'xuehai/index'
 import { UserMeta } from 'xuehai/interface'
+import { LifeCycle } from 'xuehai/lifecycle'
 import md5 from 'md5'
 import { merge } from 'lodash'
 import superagent, { Response, SuperAgentRequest, SuperAgentStatic } from 'superagent'
@@ -53,6 +54,7 @@ export class Http {
 	}
 
 	async login() {
+		await this.lifecycle.emit('before-login')
 		const res = await this.post('/api/v2/platform/login', {
 			...this.options.login,
 			password: this.options.login.passwordMd5,
@@ -65,10 +67,15 @@ export class Http {
 		this.user.roles = res.body.roles
 		this.token.access = res.body.accessToken
 		this.token.refresh = res.body.refreshToken
+		await this.lifecycle.emit('login', { user: this.user, token: this.token })
 		return res
 	}
 
-	constructor(public options: HttpOptions, public user: UserMeta) {
+	constructor(
+		public options: HttpOptions,
+		public user: UserMeta,
+		private lifecycle: LifeCycle,
+	) {
 		this.options.login = merge({
 			loginType: meta.loginType,
 			mdmVersionCode: meta.mdmVersionCode,
