@@ -9,6 +9,7 @@
     "test": "ts-node -r tsconfig-paths/register test/main.ts"
   },
   "dependencies": {
+    "colors": "^1.4.0",
     "lodash": "^4.17.21",
     "md5": "^2.3.0",
     "superagent": "^8.0.0",

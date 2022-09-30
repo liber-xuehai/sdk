@@ -1,4 +1,5 @@
 import meta from 'xuehai/meta'
+import { logger } from 'xuehai/logger'
 import { LoginConfig } from 'xuehai/index'
 import { UserMeta, Quotation } from 'xuehai/interface'
 import { LifeCycle } from 'xuehai/lifecycle'
@@ -30,6 +31,7 @@ export class Http {
 	}
 
 	async handleRequest(req: SuperAgentRequest, extend?: any): Promise<Response> {
+		logger.debug(`[${req.method.toUpperCase()}]`, req.url)
 		req = req.set({
 			'User-Agent': this.options.userAgent,
 			'Tenant': this.options.tenant,
